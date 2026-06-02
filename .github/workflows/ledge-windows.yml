@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# LEDGE V0 — Windows installer build (KDE Craft). Produces an unsigned NSIS .exe
+# from the rebranded source and uploads it as a workflow artifact.
+# Mirrors upstream windows-build-and-test.yml's known-good Craft setup, then adds
+# the packaging + upload steps that the test workflow lacks. See BRANDING.md.
+name: Ledge Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ledge]
+    paths:
+      - 'NEXTCLOUD.cmake'
+      - 'theme/**'
+      - 'src/**'
+      - 'craftmaster.ini'
+      - '.github/workflows/ledge-windows.yml'
+
+jobs:
+  build:
+    name: Ledge Windows Installer
+    runs-on: windows-2022
+    env:
+      CRAFT_TARGET: windows-msvc2022_64-cl
+      CRAFT_MASTER_LOCATION: ${{ github.workspace }}\CraftMaster
+      CRAFT_MASTER_CONFIG: ${{ github.workspace }}\craftmaster.ini
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Craft + Nextcloud client deps
+        shell: pwsh
+        run: |
+          & cmd /C "git clone -q --depth=1 https://invent.kde.org/packaging/craftmaster.git ${{ env.CRAFT_MASTER_LOCATION }} 2>&1"
+          function craft() {
+              python "${{ env.CRAFT_MASTER_LOCATION }}\CraftMaster.py" --config "${{ env.CRAFT_MASTER_CONFIG }}" --target ${{ env.CRAFT_TARGET }} -c $args
+              if($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          craft --add-blueprint-repository "https://github.com/nextcloud/craft-blueprints-kde.git|stable-33.0|"
+          craft --add-blueprint-repository "https://github.com/nextcloud/desktop-client-blueprints.git|stable-33.0|"
+          craft craft
+          craft --install-deps nextcloud-client
+
+      - name: Install inkscape (icon rasterisation)
+        shell: pwsh
+        run: choco install inkscape -y --no-progress
+
+      - name: Compile + package from rebranded source
+        shell: pwsh
+        run: |
+          function craft() {
+              python "${{ env.CRAFT_MASTER_LOCATION }}\CraftMaster.py" --config "${{ env.CRAFT_MASTER_CONFIG }}" --target ${{ env.CRAFT_TARGET }} -c $args
+              if($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          # Build the client from our checked-out (rebranded) tree, then package it.
+          craft --src-dir "${{ github.workspace }}" nextcloud-client
+          craft --src-dir "${{ github.workspace }}" --package nextcloud-client
+
+      - name: Collect installer(s)
+        shell: pwsh
+        run: |
+          $dest = "${{ github.workspace }}\artifacts"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          # The NSIS installer is a large .exe; exclude the Craft toolchain dir and
+          # tiny helper exes. Print everything found so first-run logs reveal the path.
+          $candidates = Get-ChildItem -Path "${{ github.workspace }}" -Recurse -Filter *.exe -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notmatch "CraftMaster" -and $_.Length -gt 5MB }
+          if ($candidates.Count -eq 0) {
+              Write-Host "::warning::No installer .exe (>5MB) found. All .exe under workspace:"
+              Get-ChildItem -Path "${{ github.workspace }}" -Recurse -Filter *.exe -ErrorAction SilentlyContinue |
+                  ForEach-Object { Write-Host (" {0}  ({1:N0} bytes)" -f $_.FullName, $_.Length) }
+          } else {
+              $candidates | ForEach-Object {
+                  Write-Host ("found installer: {0}  ({1:N0} MB)" -f $_.FullName, ($_.Length/1MB))
+                  Copy-Item $_.FullName $dest
+              }
+          }
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ledge-Windows-Installer
+          path: ${{ github.workspace }}\artifacts\*
+          if-no-files-found: warn
