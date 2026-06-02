@@ -50,6 +50,23 @@ jobs:
         shell: pwsh
         run: choco install inkscape -y --no-progress
 
+      - name: Work around upstream blueprint bug (missing 'import os')
+        # desktop-client-blueprints@stable-33.0 nextcloud-client.py calls os.path.join
+        # in createPackage() but never imports os -> NameError during --package.
+        # Prepend the import to the cloned blueprint before packaging.
+        shell: pwsh
+        run: |
+          $bp = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\etc\blueprints\locations\desktop-client-blueprints\nextcloud-client\nextcloud-client.py"
+          if (-not (Test-Path $bp)) { Write-Host "::error::blueprint not found at $bp"; exit 1 }
+          $c = Get-Content $bp -Raw
+          if ($c -notmatch '(?m)^\s*import os\s*$') {
+              Set-Content -Path $bp -Value ("import os`r`n" + $c)
+              Write-Host "Patched: prepended 'import os' to nextcloud-client blueprint."
+          } else {
+              Write-Host "Blueprint already imports os; no patch needed."
+          }
+          Get-Content $bp -TotalCount 3
+
       - name: Compile + package from rebranded source
         shell: pwsh
         run: |
