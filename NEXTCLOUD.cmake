@@ -10,16 +10,16 @@ if(NEXTCLOUD_DEV)
     set( APPLICATION_EXECUTABLE "nextclouddev" )
     set( APPLICATION_ICON_NAME  "Nextcloud" )
 else()
-    set( APPLICATION_NAME       "Ledge" ) # LEDGE
-    set( APPLICATION_SHORTNAME  "Ledge" ) # LEDGE
-    set( APPLICATION_EXECUTABLE "ledge" ) # LEDGE
+    set( APPLICATION_NAME       "Guru" ) # BRAND
+    set( APPLICATION_SHORTNAME  "Guru" ) # BRAND
+    set( APPLICATION_EXECUTABLE "guru" ) # BRAND
     set( APPLICATION_ICON_NAME  "${APPLICATION_SHORTNAME}" )
 endif()
 
 set( APPLICATION_CONFIG_NAME "${APPLICATION_EXECUTABLE}" )
-set( APPLICATION_DOMAIN     "guru.beanguru.com" ) # LEDGE
-set( APPLICATION_VENDOR     "BeanGuru" ) # LEDGE
-set( APPLICATION_UPDATE_URL "https://guru.beanguru.com/" CACHE STRING "URL for updater" ) # LEDGE (V0 disables auto-update at build; value is inert but must be non-empty — config.h.in uses #cmakedefine, and theme.cpp returns it unconditionally)
+set( APPLICATION_DOMAIN     "guru.beanguru.com" ) # BRAND
+set( APPLICATION_VENDOR     "BeanGuru" ) # BRAND
+set( APPLICATION_UPDATE_URL "https://guru.beanguru.com/" CACHE STRING "URL for updater" ) # BRAND (V0 disables auto-update at build; value is inert but must be non-empty — config.h.in uses #cmakedefine, and theme.cpp returns it unconditionally)
 set( APPLICATION_HELP_URL   "" CACHE STRING "URL for the help menu" )
 
 if(APPLE AND APPLICATION_NAME STREQUAL "Nextcloud" AND EXISTS "${CMAKE_SOURCE_DIR}/theme/colored/Nextcloud-macOS-icon.svg")
@@ -28,15 +28,15 @@ if(APPLE AND APPLICATION_NAME STREQUAL "Nextcloud" AND EXISTS "${CMAKE_SOURCE_DI
 endif()
 
 set( APPLICATION_ICON_SET   "SVG" )
-set( APPLICATION_SERVER_URL "https://sync.guru.beanguru.com" CACHE STRING "URL for the server to use. If entered, the UI field will be pre-filled with it" ) # LEDGE
+set( APPLICATION_SERVER_URL "https://sync.guru.beanguru.com" CACHE STRING "URL for the server to use. If entered, the UI field will be pre-filled with it" ) # BRAND
 set( APPLICATION_SERVER_URL_ENFORCE ON ) # If set and APPLICATION_SERVER_URL is defined, the server can only connect to the pre-defined URL
-set( APPLICATION_REV_DOMAIN "com.beanguru.ledge" ) # LEDGE
+set( APPLICATION_REV_DOMAIN "com.beanguru.guru" ) # BRAND
 set( DEVELOPMENT_TEAM "NKUJUXUJ3B" CACHE STRING "Apple Development Team ID" )
 set( APPLICATION_VIRTUALFILE_SUFFIX "nextcloud" CACHE STRING "Virtual file suffix (not including the .)")
 set( APPLICATION_OCSP_STAPLING_ENABLED OFF )
 set( APPLICATION_FORBID_BAD_SSL OFF )
 
-set( LINUX_PACKAGE_SHORTNAME "ledge" ) # LEDGE
+set( LINUX_PACKAGE_SHORTNAME "guru" ) # BRAND
 set( LINUX_APPLICATION_ID "${APPLICATION_REV_DOMAIN}.${LINUX_PACKAGE_SHORTNAME}")
 
 set( THEME_CLASS            "NextcloudTheme" )
@@ -62,7 +62,7 @@ option( DO_NOT_USE_PROXY "Do not use system wide proxy, instead always do a dire
 option( WIN_DISABLE_USERNAME_PREFILL "Do not prefill the Windows user name when creating a new account" OFF )
 
 ## Theming options
-set(NEXTCLOUD_BACKGROUND_COLOR "#3575B8" CACHE STRING "Default Nextcloud background color") # LEDGE (BeanGuru brand blue)
+set(NEXTCLOUD_BACKGROUND_COLOR "#3575B8" CACHE STRING "Default Nextcloud background color") # BRAND (BeanGuru brand blue)
 set( APPLICATION_WIZARD_HEADER_BACKGROUND_COLOR ${NEXTCLOUD_BACKGROUND_COLOR} CACHE STRING "Hex color of the wizard header background")
 set( APPLICATION_WIZARD_HEADER_TITLE_COLOR "#ffffff" CACHE STRING "Hex color of the text in the wizard header")
 option( APPLICATION_WIZARD_USE_CUSTOM_LOGO "Use the logo from ':/client/theme/colored/wizard_logo.(png|svg)' else the default application icon is used" ON )

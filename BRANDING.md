@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: GPL-2.0-or-later -->
-# Ledge Desktop — branding fork notes
+# Guru Desktop — branding fork notes
 
 This is a rebrand fork of the **Nextcloud Desktop client**, pinned at upstream tag
-`v33.0.3`. It is the V0 sync client for the Guru/Ledge platform
-(server side: `sync.guru.beanguru.com`). Product working name: **Ledge**
+`v33.0.3`. It is the V0 sync client for the Guru platform
+(server side: `sync.guru.beanguru.com`). Product working name: **Guru**
 (will become **Ortura** — see the sweep section below).
 
 > Scope of the fork is deliberately tiny: **name, icon, default server URL, brand
@@ -21,66 +21,66 @@ This is a rebrand fork of the **Nextcloud Desktop client**, pinned at upstream t
 | Branch | Purpose |
 |---|---|
 | `main` | upstream baseline, pinned at `v33.0.3` (rebase target for future upstream bumps) |
-| `ledge` | our rebrand commits on top of `v33.0.3` — **this is what we build/ship** |
+| `guru` | our rebrand commits on top of `v33.0.3` — **this is what we build/ship** |
 
 ## Every brand change lives in two places
 
-### 1. `NEXTCLOUD.cmake` — all brand strings (grep `# LEDGE`)
+### 1. `NEXTCLOUD.cmake` — all brand strings (grep `# BRAND`)
 
-Run `grep -n '# LEDGE' NEXTCLOUD.cmake` to see every overridden line. Current set:
+Run `grep -n '# BRAND' NEXTCLOUD.cmake` to see every overridden line. Current set:
 
-| Variable | Stock value | Ledge value |
+| Variable | Stock value | Guru value |
 |---|---|---|
-| `APPLICATION_NAME` | `Nextcloud` | `Ledge` |
-| `APPLICATION_SHORTNAME` | `Nextcloud` | `Ledge` |
-| `APPLICATION_EXECUTABLE` | `nextcloud` | `ledge` |
+| `APPLICATION_NAME` | `Nextcloud` | `Guru` |
+| `APPLICATION_SHORTNAME` | `Nextcloud` | `Guru` |
+| `APPLICATION_EXECUTABLE` | `nextcloud` | `guru` |
 | `APPLICATION_DOMAIN` | `nextcloud.com` | `guru.beanguru.com` |
 | `APPLICATION_VENDOR` | `Nextcloud GmbH` | `BeanGuru` |
 | `APPLICATION_UPDATE_URL` | nextcloud updater URL | `https://guru.beanguru.com/` — inert (V0 disables auto-update at build) but **must be non-empty**: `config.h.in` uses `#cmakedefine` and `theme.cpp` returns it unconditionally, so `""` fails to compile |
 | `APPLICATION_SERVER_URL` | *(empty)* | `https://sync.guru.beanguru.com` |
 | `APPLICATION_SERVER_URL_ENFORCE` | `ON` (unchanged) | `ON` — client may **only** connect to the URL above (BeanGuru-only V0 build) |
-| `APPLICATION_REV_DOMAIN` | `com.nextcloud.desktopclient` | `com.beanguru.ledge` (macOS bundle id) |
-| `LINUX_PACKAGE_SHORTNAME` | `nextcloud` | `ledge` |
+| `APPLICATION_REV_DOMAIN` | `com.nextcloud.desktopclient` | `com.beanguru.guru` (macOS bundle id) |
+| `LINUX_PACKAGE_SHORTNAME` | `nextcloud` | `guru` |
 | `NEXTCLOUD_BACKGROUND_COLOR` | `#0082c9` | `#3575B8` (BeanGuru brand blue — wizard header) |
 
 `APPLICATION_ICON_NAME` is left as `${APPLICATION_SHORTNAME}`, so it resolves to
-`Ledge` and the build looks for `theme/colored/Ledge-*.svg` (below).
+`Guru` and the build looks for `theme/colored/Guru-*.svg` (below).
 
 **Deliberately NOT changed:** `THEME_CLASS` (`NextcloudTheme`) is a C++ class name,
 not user-visible — renaming it needs a matching source rename, out of scope for a
 minimal rebrand. `APPLICATION_VIRTUALFILE_SUFFIX` is left `nextcloud` (VFS is not
 used in V0).
 
-### 2. `theme/` — placeholder icon assets (V0 = minimal, not final art)
+### 2. `theme/` — icon assets (BeanGuru mark, interim until Ortura)
 
 | File | Used by | Notes |
 |---|---|---|
-| `theme/colored/Ledge-icon.svg` | macOS `.icns`, Windows `.ico`, Linux PNGs | App/Dock icon — blue rounded square + white "L" |
-| `theme/colored/Ledge-sidebar.svg` | macOS Finder sidebar (template) | Monochrome "L" |
-| `theme/colored/Ledge-w10startmenu.svg` | Windows start-menu tile PNGs | White "L" |
-| `theme/ledge.VisualElementsManifest.xml` | Windows start tile | Renamed from `nextcloud.VisualElementsManifest.xml`; references the generated `*-Ledge-w10startmenu.png` |
+| `theme/colored/Guru-icon.svg` | macOS `.icns`, Windows `.ico`, Linux PNGs | App/Dock icon — BeanGuru mark (white) on a brand-blue tile |
+| `theme/colored/Guru-sidebar.svg` | macOS Finder sidebar (template) | BeanGuru mark, monochrome (macOS tints it) |
+| `theme/colored/Guru-w10startmenu.svg` | Windows start-menu tile PNGs | BeanGuru mark, white |
+| `theme/guru.VisualElementsManifest.xml` | Windows start tile | Renamed from `nextcloud.VisualElementsManifest.xml`; references the generated `*-Guru-w10startmenu.png` |
 
-These are **placeholders** — a recolored square with an "L", chosen over polished
-art because the Ortura rename is imminent. The tray/sync-status overlay glyphs
+These reuse the **BeanGuru logo mark** (extracted from the main app) on a brand-blue
+tile — legit enough for the team; swapped for final Ortura art at the rename. The tray/sync-status overlay glyphs
 (`theme/white/`, `theme/black/` `state-*`) are upstream and **left as-is** for V0.
 
 The original `Nextcloud-*` assets are left in `theme/colored/` untouched (inert
-once `APPLICATION_ICON_NAME` points at `Ledge`).
+once `APPLICATION_ICON_NAME` points at `Guru`).
 
 ## How to build (macOS)
 
 From `admin/osx/mac-crafter`:
 
 ```bash
-swift run mac-crafter build --app-name Ledge --disable-auto-updater
+swift run mac-crafter build --app-name Guru --disable-auto-updater
 ```
 
-- `--app-name Ledge` **must match** `APPLICATION_NAME` — mac-crafter copies
+- `--app-name Guru` **must match** `APPLICATION_NAME` — mac-crafter copies
   `<app-name>.app` out of the build image, so a mismatch fails the copy.
 - `--disable-auto-updater` — V0 ships without Sparkle.
 - Add `--full-rebuild` after changing `NEXTCLOUD.cmake` cache vars
   (e.g. `APPLICATION_SERVER_URL`) so a stale CMake cache doesn't keep the old value.
-- Output: `admin/osx/mac-crafter/product/Ledge.app` (unsigned, ad-hoc). For a `.dmg`
+- Output: `admin/osx/mac-crafter/product/Guru.app` (unsigned, ad-hoc). For a `.dmg`
   use the `create-dmg` subcommand. Unsigned → recipients open via right-click → Open.
 
 Windows `.exe` is produced via the fork's CI (KDE Craft on a Windows runner) — see
@@ -90,12 +90,12 @@ Phase 2 notes / the spec.
 
 Everything is concentrated so the rename is a one-place change:
 
-1. `NEXTCLOUD.cmake`: change the `# LEDGE`-tagged values — `Ledge`→`Ortura`,
-   `ledge`→`ortura`, `com.beanguru.ledge`→`com.ortura.desktop` (or final id),
-   domain/vendor as decided. (`grep -n '# LEDGE' NEXTCLOUD.cmake`.)
-2. `theme/colored/`: rename `Ledge-icon.svg` / `Ledge-sidebar.svg` /
-   `Ledge-w10startmenu.svg` → `Ortura-*` and drop in final art.
-3. `theme/ledge.VisualElementsManifest.xml` → `theme/ortura.VisualElementsManifest.xml`
+1. `NEXTCLOUD.cmake`: change the `# BRAND`-tagged values — `Guru`→`Ortura`,
+   `guru`→`ortura`, `com.beanguru.guru`→`com.ortura.desktop` (or final id),
+   domain/vendor as decided. (`grep -n '# BRAND' NEXTCLOUD.cmake`.)
+2. `theme/colored/`: rename `Guru-icon.svg` / `Guru-sidebar.svg` /
+   `Guru-w10startmenu.svg` → `Ortura-*` and drop in final art.
+3. `theme/guru.VisualElementsManifest.xml` → `theme/ortura.VisualElementsManifest.xml`
    (filename must equal `APPLICATION_EXECUTABLE`), update the PNG refs inside.
 4. Build with `--app-name Ortura`.
 

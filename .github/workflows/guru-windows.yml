@@ -1,24 +1,24 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# LEDGE V0 — Windows installer build (KDE Craft). Produces an unsigned NSIS .exe
+# GURU V0 — Windows installer build (KDE Craft). Produces an unsigned NSIS .exe
 # from the rebranded source and uploads it as a workflow artifact.
 # Mirrors upstream windows-build-and-test.yml's known-good Craft setup, then adds
 # the packaging + upload steps that the test workflow lacks. See BRANDING.md.
-name: Ledge Windows
+name: Guru Windows
 
 on:
   workflow_dispatch:
   push:
-    branches: [ledge]
+    branches: [guru]
     paths:
       - 'NEXTCLOUD.cmake'
       - 'theme/**'
       - 'src/**'
       - 'craftmaster.ini'
-      - '.github/workflows/ledge-windows.yml'
+      - '.github/workflows/guru-windows.yml'
 
 jobs:
   build:
-    name: Ledge Windows Installer
+    name: Guru Windows Installer
     runs-on: windows-2022
     env:
       CRAFT_TARGET: windows-msvc2022_64-cl
@@ -94,8 +94,8 @@ jobs:
               exit 1
           }
           $installers | ForEach-Object {
-              # Friendlier name: nextcloud-client-ledge-... -> Ledge-Setup-...
-              $newName = $_.Name -replace '^nextcloud-client-ledge', 'Ledge-Setup'
+              # Friendlier name: nextcloud-client-guru-... -> Guru-Setup-...
+              $newName = $_.Name -replace '^nextcloud-client-guru', 'Guru-Setup'
               Write-Host ("installer: {0} ({1:N0} MB) -> {2}" -f $_.Name, ($_.Length/1MB), $newName)
               Copy-Item $_.FullName (Join-Path $dest $newName)
           }
@@ -103,6 +103,6 @@ jobs:
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Ledge-Windows-Installer
+          name: Guru-Windows-Installer
           path: ${{ github.workspace }}\artifacts\*
           if-no-files-found: error
