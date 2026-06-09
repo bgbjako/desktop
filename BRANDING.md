@@ -94,8 +94,16 @@ hardcodes `displayName = "Nextcloud"`, `defines["appname"] = "nextcloud"`,
 shortcut is named "Nextcloud" and targets `nextcloud.exe` while our build ships
 `guru.exe` — so the app installs but can't be found or launched. The CI patches these
 four lines to `Guru` / `guru` / `BeanGuru` in the "Patch upstream blueprint" step
-(`.github/workflows/guru-windows.yml`). macOS is unaffected (mac-crafter reads the
-cmake values directly).
+(`.github/workflows/guru-windows.yml`).
+
+A **second file in the same blueprint dir — `blacklist.txt` — is even more important:**
+its last line strips every `bin/*.exe` except a hardcoded allow-list,
+`bin/(?!(nextcloud|nextcloudcmd|QtWebEngineProcess)).*\.exe`. Because our exes are
+renamed to `guru.exe` / `gurucmd.exe`, they are *not* allow-listed and the packager
+**deletes the main app binary from the image** — the installer ships the Guru libs +
+branding but no runnable app. The same CI step rewrites the allow-list to
+`(guru|gurucmd|QtWebEngineProcess)`. macOS is unaffected (mac-crafter reads the cmake
+values directly and doesn't use this blacklist).
 
 ## The Ortura rename sweep (when it lands)
 
@@ -110,9 +118,10 @@ Everything is concentrated so the rename is a one-place change:
    (filename must equal `APPLICATION_EXECUTABLE`), update the PNG refs inside.
 4. `.github/workflows/guru-windows.yml` — the "Patch upstream blueprint" step rewrites
    the blueprint's `displayName` / `appname` / `company` / `applicationExecutable`
-   (see the Windows packaging gotcha above). Update those replacement targets to the
-   Ortura values too, or the Windows Start Menu shortcut regresses to a broken
-   "Nextcloud" entry.
+   **and** the `blacklist.txt` exe allow-list (see the Windows packaging gotcha above).
+   Update both replacement targets to the Ortura values — the brand strings *and* the
+   `(guru|gurucmd|QtWebEngineProcess)` allow-list — or the Windows installer regresses
+   (broken "Nextcloud" shortcut and/or a missing app binary).
 5. Build with `--app-name Ortura`.
 
 That's the whole surface. See the platform spec `NEXTCLOUD-TRANSITION-SPEC.md`

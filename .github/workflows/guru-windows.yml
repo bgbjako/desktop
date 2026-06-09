@@ -50,14 +50,18 @@ jobs:
         shell: pwsh
         run: choco install inkscape -y --no-progress
 
-      - name: Patch upstream blueprint (import-os bug + Guru packaging names)
-        # Two edits to the cloned desktop-client-blueprints@stable-33.0 nextcloud-client.py:
-        #  1. It calls os.path.join in createPackage() but never imports os -> NameError.
-        #  2. It hardcodes the Windows installer identity to "Nextcloud" / nextcloud.exe,
-        #     which doesn't match our rebrand (APPLICATION_EXECUTABLE=guru -> guru.exe).
-        #     Left unpatched, the Start Menu shortcut is named "Nextcloud" AND targets a
-        #     non-existent nextcloud.exe -> the app installs but can't be found or launched.
-        #     We align displayName/appname/company/applicationExecutable to the cmake values.
+      - name: Patch upstream blueprint (import-os bug + Guru packaging names + exe allow-list)
+        # Three edits to the cloned desktop-client-blueprints@stable-33.0 blueprint:
+        #  1. nextcloud-client.py calls os.path.join in createPackage() but never imports
+        #     os -> NameError.
+        #  2. nextcloud-client.py hardcodes the installer identity to "Nextcloud" /
+        #     nextcloud.exe; our rebrand ships guru.exe. Left unpatched the Start Menu
+        #     shortcut is named "Nextcloud" and targets a non-existent nextcloud.exe.
+        #  3. blacklist.txt strips every bin/*.exe EXCEPT a hardcoded allow-list
+        #     (nextcloud|nextcloudcmd|QtWebEngineProcess). Our exes are guru.exe /
+        #     gurucmd.exe, which aren't allow-listed -> the packager DELETES the main app
+        #     binary from the image, so the installer ships without an app to run. We
+        #     re-point the allow-list at the guru names.
         shell: pwsh
         run: |
           $bp = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\etc\blueprints\locations\desktop-client-blueprints\nextcloud-client\nextcloud-client.py"
@@ -77,6 +81,18 @@ jobs:
           Set-Content -Path $bp -Value $c
           Write-Host "=== patched blueprint brand lines ==="
           Select-String -Path $bp -Pattern 'displayName =|\["appname"\]|\["company"\]|applicationExecutable ='
+
+          # Keep our renamed app binaries (guru.exe / gurucmd.exe) in the package.
+          $bl = Join-Path (Split-Path $bp) 'blacklist.txt'
+          if (-not (Test-Path $bl)) { Write-Host "::error::blacklist.txt not found at $bl"; exit 1 }
+          $b = Get-Content $bl -Raw
+          $b = $b -replace '\(nextcloud\|nextcloudcmd\|QtWebEngineProcess\)', '(guru|gurucmd|QtWebEngineProcess)'
+          Set-Content -Path $bl -Value $b
+          Write-Host "=== patched blacklist exe allow-list ==="
+          Select-String -Path $bl -Pattern 'QtWebEngineProcess'
+          if ((Get-Content $bl -Raw) -match 'nextcloud') {
+              Write-Host "::error::blacklist.txt still references 'nextcloud' after patch"; exit 1
+          }
 
       - name: Compile + package from rebranded source
         shell: pwsh
