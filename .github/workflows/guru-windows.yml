@@ -80,12 +80,16 @@ jobs:
           $c = $c -replace 'self\.applicationExecutable = "nextcloud"', 'self.applicationExecutable = "guru"'
           # Brand the NSIS installer chrome (setup .exe icon, wizard MUI_ICON, uninstaller).
           # Craft otherwise defaults defines["icon"] to its own craft.ico (a gear/tools glyph).
+          # Also define a Start Menu shortcut: Craft only auto-creates one from
+          # defines["executable"], which is never set for this blueprint -> no shortcut at
+          # all. We add it explicitly, targeting the real exe path (bin/guru.exe — the app
+          # installs into a bin/ subdir). icon defaults to the exe's own embedded Guru icon.
           $ico = "${{ github.workspace }}\theme\colored\Guru.ico"
           if (-not (Test-Path $ico)) { Write-Host "::error::Guru.ico not found at $ico"; exit 1 }
-          $c = $c -replace '(self\.applicationExecutable = "guru")', "`$1`r`n        self.defines[`"icon`"] = r`"$ico`""
+          $c = $c -replace '(self\.applicationExecutable = "guru")', "`$1`r`n        self.defines[`"icon`"] = r`"$ico`"`r`n        self.defines[`"shortcuts`"] = [{`"name`": `"Guru`", `"target`": `"bin/guru.exe`"}]"
           Set-Content -Path $bp -Value $c
           Write-Host "=== patched blueprint brand lines ==="
-          Select-String -Path $bp -Pattern 'displayName =|\["appname"\]|\["company"\]|applicationExecutable =|\["icon"\]'
+          Select-String -Path $bp -Pattern 'displayName =|\["appname"\]|\["company"\]|applicationExecutable =|\["icon"\]|\["shortcuts"\]'
 
           # Keep our renamed app binaries (guru.exe / gurucmd.exe) in the package.
           $bl = Join-Path (Split-Path $bp) 'blacklist.txt'

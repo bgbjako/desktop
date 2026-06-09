@@ -105,6 +105,16 @@ branding but no runnable app. The same CI step rewrites the allow-list to
 `(guru|gurucmd|QtWebEngineProcess)`. macOS is unaffected (mac-crafter reads the cmake
 values directly and doesn't use this blacklist).
 
+The same CI patch also injects two more `self.defines` into `createPackage()`:
+`defines["icon"]` (→ our committed `theme/colored/Guru.ico`, else the installer chrome
+falls back to Craft's gear/tools `craft.ico`) and `defines["shortcuts"]`
+(`[{"name": "Guru", "target": "bin/guru.exe"}]` — Craft only auto-creates a Start Menu
+shortcut from `defines["executable"]`, which this blueprint never sets, so without this
+there is **no** Start Menu entry; note the exe installs under a `bin/` subdir, so the
+target must be `bin/guru.exe`). Craft's packager only emits Start Menu shortcuts, not
+Desktop ones. The Ortura sweep must update the `Guru.ico` path + the `"Guru"`/`bin/guru.exe`
+shortcut strings alongside the brand strings.
+
 ## The Ortura rename sweep (when it lands)
 
 Everything is concentrated so the rename is a one-place change:
