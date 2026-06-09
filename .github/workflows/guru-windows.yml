@@ -78,9 +78,14 @@ jobs:
           $c = $c -replace 'self\.defines\["appname"\] = "nextcloud"', 'self.defines["appname"] = "guru"'
           $c = $c -replace 'self\.defines\["company"\] = "Nextcloud GmbH"', 'self.defines["company"] = "BeanGuru"'
           $c = $c -replace 'self\.applicationExecutable = "nextcloud"', 'self.applicationExecutable = "guru"'
+          # Brand the NSIS installer chrome (setup .exe icon, wizard MUI_ICON, uninstaller).
+          # Craft otherwise defaults defines["icon"] to its own craft.ico (a gear/tools glyph).
+          $ico = "${{ github.workspace }}\theme\colored\Guru.ico"
+          if (-not (Test-Path $ico)) { Write-Host "::error::Guru.ico not found at $ico"; exit 1 }
+          $c = $c -replace '(self\.applicationExecutable = "guru")', "`$1`r`n        self.defines[`"icon`"] = r`"$ico`""
           Set-Content -Path $bp -Value $c
           Write-Host "=== patched blueprint brand lines ==="
-          Select-String -Path $bp -Pattern 'displayName =|\["appname"\]|\["company"\]|applicationExecutable ='
+          Select-String -Path $bp -Pattern 'displayName =|\["appname"\]|\["company"\]|applicationExecutable =|\["icon"\]'
 
           # Keep our renamed app binaries (guru.exe / gurucmd.exe) in the package.
           $bl = Join-Path (Split-Path $bp) 'blacklist.txt'
