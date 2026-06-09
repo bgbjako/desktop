@@ -50,22 +50,33 @@ jobs:
         shell: pwsh
         run: choco install inkscape -y --no-progress
 
-      - name: Work around upstream blueprint bug (missing 'import os')
-        # desktop-client-blueprints@stable-33.0 nextcloud-client.py calls os.path.join
-        # in createPackage() but never imports os -> NameError during --package.
-        # Prepend the import to the cloned blueprint before packaging.
+      - name: Patch upstream blueprint (import-os bug + Guru packaging names)
+        # Two edits to the cloned desktop-client-blueprints@stable-33.0 nextcloud-client.py:
+        #  1. It calls os.path.join in createPackage() but never imports os -> NameError.
+        #  2. It hardcodes the Windows installer identity to "Nextcloud" / nextcloud.exe,
+        #     which doesn't match our rebrand (APPLICATION_EXECUTABLE=guru -> guru.exe).
+        #     Left unpatched, the Start Menu shortcut is named "Nextcloud" AND targets a
+        #     non-existent nextcloud.exe -> the app installs but can't be found or launched.
+        #     We align displayName/appname/company/applicationExecutable to the cmake values.
         shell: pwsh
         run: |
           $bp = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\etc\blueprints\locations\desktop-client-blueprints\nextcloud-client\nextcloud-client.py"
           if (-not (Test-Path $bp)) { Write-Host "::error::blueprint not found at $bp"; exit 1 }
           $c = Get-Content $bp -Raw
           if ($c -notmatch '(?m)^\s*import os\s*$') {
-              Set-Content -Path $bp -Value ("import os`r`n" + $c)
-              Write-Host "Patched: prepended 'import os' to nextcloud-client blueprint."
+              $c = "import os`r`n" + $c
+              Write-Host "Patched: prepended 'import os'."
           } else {
-              Write-Host "Blueprint already imports os; no patch needed."
+              Write-Host "Blueprint already imports os; no import patch needed."
           }
-          Get-Content $bp -TotalCount 3
+          # Rebrand the Windows packaging identity to match NEXTCLOUD.cmake (guru / BeanGuru).
+          $c = $c -replace 'self\.displayName = "Nextcloud"', 'self.displayName = "Guru"'
+          $c = $c -replace 'self\.defines\["appname"\] = "nextcloud"', 'self.defines["appname"] = "guru"'
+          $c = $c -replace 'self\.defines\["company"\] = "Nextcloud GmbH"', 'self.defines["company"] = "BeanGuru"'
+          $c = $c -replace 'self\.applicationExecutable = "nextcloud"', 'self.applicationExecutable = "guru"'
+          Set-Content -Path $bp -Value $c
+          Write-Host "=== patched blueprint brand lines ==="
+          Select-String -Path $bp -Pattern 'displayName =|\["appname"\]|\["company"\]|applicationExecutable ='
 
       - name: Compile + package from rebranded source
         shell: pwsh

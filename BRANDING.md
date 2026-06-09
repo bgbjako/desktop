@@ -86,6 +86,17 @@ swift run mac-crafter build --app-name Guru --disable-auto-updater
 Windows `.exe` is produced via the fork's CI (KDE Craft on a Windows runner) — see
 Phase 2 notes / the spec.
 
+**Windows packaging gotcha:** the installer's app name, install folder, Start Menu
+shortcut, and the exe the shortcut launches do **not** come from `NEXTCLOUD.cmake` —
+they come from the upstream **`desktop-client-blueprints/nextcloud-client.py`**, which
+hardcodes `displayName = "Nextcloud"`, `defines["appname"] = "nextcloud"`,
+`defines["company"]`, and `applicationExecutable = "nextcloud"`. Left as-is, the
+shortcut is named "Nextcloud" and targets `nextcloud.exe` while our build ships
+`guru.exe` — so the app installs but can't be found or launched. The CI patches these
+four lines to `Guru` / `guru` / `BeanGuru` in the "Patch upstream blueprint" step
+(`.github/workflows/guru-windows.yml`). macOS is unaffected (mac-crafter reads the
+cmake values directly).
+
 ## The Ortura rename sweep (when it lands)
 
 Everything is concentrated so the rename is a one-place change:
@@ -97,7 +108,12 @@ Everything is concentrated so the rename is a one-place change:
    `Guru-w10startmenu.svg` → `Ortura-*` and drop in final art.
 3. `theme/guru.VisualElementsManifest.xml` → `theme/ortura.VisualElementsManifest.xml`
    (filename must equal `APPLICATION_EXECUTABLE`), update the PNG refs inside.
-4. Build with `--app-name Ortura`.
+4. `.github/workflows/guru-windows.yml` — the "Patch upstream blueprint" step rewrites
+   the blueprint's `displayName` / `appname` / `company` / `applicationExecutable`
+   (see the Windows packaging gotcha above). Update those replacement targets to the
+   Ortura values too, or the Windows Start Menu shortcut regresses to a broken
+   "Nextcloud" entry.
+5. Build with `--app-name Ortura`.
 
 That's the whole surface. See the platform spec `NEXTCLOUD-TRANSITION-SPEC.md`
 (in the main app repo) for the why and the GA path (code-signing, auto-update).
