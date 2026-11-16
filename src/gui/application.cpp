@@ -65,6 +65,10 @@ Q_LOGGING_CATEGORY(lcApplication, "nextcloud.gui.application", QtInfoMsg)
 
 namespace {
 
+// GURU: ask before syncing a deletion of more than this many files (upstream
+// default is 100). Guru FILE-DELETION-SAFEGUARDS-SPEC PR5, decision D5.
+constexpr int guruDeleteFilesThreshold = 10;
+
     static const char optionsC[] =
         "Options:\n"
         "  --help, -h                 : show this help screen.\n"
@@ -150,8 +154,8 @@ bool Application::configVersionMigration()
     configFile.setLaunchOnSystemStartup(configFile.launchOnSystemStartup());
     Utility::setLaunchOnStartup(theme->appName(), theme->appNameGUI(), configFile.launchOnSystemStartup());
 
-    // default is now off to displaying dialog warning user of too many files deletion
-    configFile.setPromptDeleteFiles(false);
+    // GURU: upstream forced the mass-deletion prompt OFF here. Removed — the
+    // prompt is forced ON at every start instead (see Application::Application).
 
     // back up all old config files
     QStringList backupFilesList;
@@ -331,6 +335,16 @@ Application::Application(int &argc, char **argv)
     }
 
     ConfigFile cfg;
+
+    // GURU: always ask before syncing a mass deletion. Upstream switched this
+    // OFF (and saved it) on every upgrade, so existing installs carry "off" in
+    // their config; enforcing it at every start is the only way to reach them,
+    // and keeps it on even if someone unticks it. The threshold is lowered from
+    // upstream's 100 so an accidental select-all in a month folder is caught.
+    // (Guru FILE-DELETION-SAFEGUARDS-SPEC PR5, decision D5.)
+    cfg.setPromptDeleteFiles(true);
+    cfg.setDeleteFilesThreshold(guruDeleteFilesThreshold);
+
     {
         auto shouldExit = false;
 

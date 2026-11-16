@@ -81,7 +81,7 @@ static constexpr char languageC[] = "language";
 
 static constexpr char lastSelectedAccountC[] = "lastSelectedAccount";
 
-static constexpr int deleteFilesThresholdDefaultValue = 100;
+static constexpr int deleteFilesThresholdDefaultValue = 10; // GURU: upstream 100 (see application.cpp)
 }
 
 namespace OCC {
@@ -1040,7 +1040,7 @@ bool ConfigFile::showMainDialogAsNormalWindow() const {
 bool ConfigFile::promptDeleteFiles() const
 {
     QSettings settings(configFile(), QSettings::IniFormat);
-    return settings.value(promptDeleteC, false).toBool();
+    return settings.value(promptDeleteC, true).toBool(); // GURU: upstream default false
 }
 
 void ConfigFile::setPromptDeleteFiles(bool promptDeleteFiles)
