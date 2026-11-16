@@ -115,6 +115,32 @@ target must be `bin/guru.exe`). Craft's packager only emits Start Menu shortcuts
 Desktop ones. The Ortura sweep must update the `Guru.ico` path + the `"Guru"`/`bin/guru.exe`
 shortcut strings alongside the brand strings.
 
+## Build recipes are pinned (fixed 2026-11-16)
+
+Both builds use KDE Craft "recipes" (blueprints) plus Nextcloud's prebuilt
+dependency cache (`Packager/CacheVersion = stable-33.0-qt-6.10.2` in
+`craftmaster.ini`). The recipes must match what the cache was built from, or
+Craft falls back to compiling Qt and friends from source, which fails.
+
+Upstream leaves the recipes floating, and between June and November 2026 they
+drifted (a new `withAccessibility` option on qtbase; html5lib moved to 1.1), so
+both builds broke. They are now pinned in three places that must move together:
+
+| Where | What |
+|---|---|
+| `craftmaster.ini` → `craft/craft-blueprints-kde.revision` | **The one that actually decides the checkout** of the recipe folder `etc/blueprints/locations/craft-blueprints-kde`. Upstream has `master`, which overrides any other pin. |
+| `.github/workflows/guru-windows.yml` → `KDE_BLUEPRINTS_REV`, `CLIENT_BLUEPRINTS_REV` | Passed when the recipe repos are added (`url||revision`; Craft refuses a branch and a revision together), and checked after. |
+| `admin/osx/mac-crafter/Sources/Commands/Build.swift` → `kdeBlueprintsGitRevision`, `clientBlueprintsGitRevision` | Same, for the Mac build. Branch defaults changed from `master` to `stable-33.0`. |
+
+Current pins: `nextcloud/craft-blueprints-kde` `2c84b3913233bb6eeef66fb83121313714f07fba`
+(stable-33.0, 2026-02-19); `nextcloud/desktop-client-blueprints` `a3897a52c02ac48544dab6cdd3c45aeaebee5eba`
+(stable-33.0, 2026-06-08). To move to a newer upstream: change `CacheVersion` and all
+three pins together, to revisions that match that cache.
+
+The Mac build starts from scratch if `admin/osx/mac-crafter/build` is missing (about 35
+minutes on an M-series Mac; Qt comes from the cache). Package with
+`swift run mac-crafter create-dmg product/Guru.app --app-name Guru`.
+
 ## The Ortura rename sweep (when it lands)
 
 Everything is concentrated so the rename is a one-place change:
