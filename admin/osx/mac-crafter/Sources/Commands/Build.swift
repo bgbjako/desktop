@@ -33,14 +33,24 @@ struct Build: AsyncParsableCommand {
     @Option(name: [.long], help: "KDE Craft blueprints Git URL.")
     var kdeBlueprintsGitUrl = "https://github.com/nextcloud/craft-blueprints-kde.git"
     
+    // GURU: default to the stable-33.0 recipes at the revisions of the last
+    // good build (June 2026). At the branch tip an upstream recipe change
+    // stops matching Nextcloud's prebuilt dependency cache and Craft tries to
+    // compile Qt from source. Move these together with craftmaster.ini.
     @Option(name: [.long], help: "KDE Craft blueprints git ref/branch")
-    var kdeBlueprintsGitRef = "master"
+    var kdeBlueprintsGitRef = "stable-33.0"
+
+    @Option(name: [.long], help: "KDE Craft blueprints git revision to pin (empty = branch tip).")
+    var kdeBlueprintsGitRevision = "2c84b3913233bb6eeef66fb83121313714f07fba"
     
     @Option(name: [.long], help: "Nextcloud Desktop Client craft blueprints Git URL.")
     var clientBlueprintsGitUrl = "https://github.com/nextcloud/desktop-client-blueprints.git"
     
     @Option(name: [.long], help: "Nextcloud Desktop Client craft blueprints Git ref/branch.")
-    var clientBlueprintsGitRef = "master"
+    var clientBlueprintsGitRef = "stable-33.0" // GURU: was master
+
+    @Option(name: [.long], help: "Nextcloud Desktop Client craft blueprints git revision to pin (empty = branch tip).")
+    var clientBlueprintsGitRevision = "a3897a52c02ac48544dab6cdd3c45aeaebee5eba"
     
     @Option(name: [.long], help: "Nextcloud Desktop Client craft blueprint name.")
     var craftBlueprintName = "nextcloud-client"
@@ -171,11 +181,11 @@ struct Build: AsyncParsableCommand {
             Log.info("Configuring required KDE Craft blueprint repositories...")
             stopwatch.record("Craft Blueprints Configuration")
 
-            guard await shell("\(craftCommand) --add-blueprint-repository '\(kdeBlueprintsGitUrl)|\(kdeBlueprintsGitRef)|'") == 0 else {
+            guard await shell("\(craftCommand) --add-blueprint-repository '\(blueprintSpec(kdeBlueprintsGitUrl, kdeBlueprintsGitRef, kdeBlueprintsGitRevision))'") == 0 else {
                 throw MacCrafterError.craftError("Error adding KDE blueprint repository.")
             }
 
-            guard await shell("\(craftCommand) --add-blueprint-repository '\(clientBlueprintsGitUrl)|\(clientBlueprintsGitRef)|'") == 0 else {
+            guard await shell("\(craftCommand) --add-blueprint-repository '\(blueprintSpec(clientBlueprintsGitUrl, clientBlueprintsGitRef, clientBlueprintsGitRevision))'") == 0 else {
                 throw MacCrafterError.craftError("Error adding Nextcloud Client blueprint repository.")
             }
             
@@ -519,4 +529,10 @@ struct Build: AsyncParsableCommand {
             Log.info("Flattened DWARF entry: \(entry.lastPathComponent)")
         }
     }
+}
+
+// GURU: Craft takes "url|branch|revision" but refuses a branch and a revision
+// together, so a pinned revision is passed with the branch left empty.
+func blueprintSpec(_ url: String, _ ref: String, _ revision: String) -> String {
+    revision.isEmpty ? "\(url)|\(ref)|" : "\(url)||\(revision)"
 }

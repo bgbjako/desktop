@@ -24,6 +24,9 @@ jobs:
       CRAFT_TARGET: windows-msvc2022_64-cl
       CRAFT_MASTER_LOCATION: ${{ github.workspace }}\CraftMaster
       CRAFT_MASTER_CONFIG: ${{ github.workspace }}\craftmaster.ini
+      # Recipe revisions from the last good build (stable-33.0, June 2026).
+      KDE_BLUEPRINTS_REV: 2c84b3913233bb6eeef66fb83121313714f07fba
+      CLIENT_BLUEPRINTS_REV: a3897a52c02ac48544dab6cdd3c45aeaebee5eba
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,8 +44,29 @@ jobs:
               python "${{ env.CRAFT_MASTER_LOCATION }}\CraftMaster.py" --config "${{ env.CRAFT_MASTER_CONFIG }}" --target ${{ env.CRAFT_TARGET }} -c $args
               if($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          craft --add-blueprint-repository "https://github.com/nextcloud/craft-blueprints-kde.git|stable-33.0|"
-          craft --add-blueprint-repository "https://github.com/nextcloud/desktop-client-blueprints.git|stable-33.0|"
+          # Pin both recipe repos. Left at the branch tip, an upstream recipe change
+          # (qtbase gained a new option on 2026-10-07) stops matching Nextcloud's
+          # prebuilt dependency cache, Craft falls back to compiling Qt from source,
+          # and the build fails. These are the revisions of the last good build
+          # (June 2026). Move them deliberately, together with the cache version
+          # in craftmaster.ini. Craft takes "url|branch|revision" but refuses both
+          # at once, so the branch is left empty.
+          craft --add-blueprint-repository "https://github.com/nextcloud/craft-blueprints-kde.git||${{ env.KDE_BLUEPRINTS_REV }}"
+          craft --add-blueprint-repository "https://github.com/nextcloud/desktop-client-blueprints.git||${{ env.CLIENT_BLUEPRINTS_REV }}"
+          $loc = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\etc\blueprints\locations"
+          foreach ($pin in @(@("craft-blueprints-kde", "${{ env.KDE_BLUEPRINTS_REV }}"), @("desktop-client-blueprints", "${{ env.CLIENT_BLUEPRINTS_REV }}"))) {
+              $dir = Join-Path $loc $pin[0]
+              $head = (git -C $dir rev-parse HEAD).Trim()
+              Write-Host ("{0} at {1}" -f $pin[0], $head)
+              if ($head -ne $pin[1]) {
+                  # Craft didn't honour the revision; check it out ourselves.
+                  git -C $dir fetch --quiet origin $pin[1]
+                  git -C $dir checkout --quiet $pin[1]
+                  $head = (git -C $dir rev-parse HEAD).Trim()
+                  if ($head -ne $pin[1]) { Write-Host ("::error::{0} is at {1}, expected {2}" -f $pin[0], $head, $pin[1]); exit 1 }
+                  Write-Host ("{0} now pinned at {1}" -f $pin[0], $head)
+              }
+          }
           craft craft
           craft --install-deps nextcloud-client
 
